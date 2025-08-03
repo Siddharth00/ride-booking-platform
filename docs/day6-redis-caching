@@ -1,0 +1,67 @@
+# Day 6: Redis Caching Setup
+
+Goal:
+Add caching to GET /trips/list using Redis.
+Cache trips per user for faster reads.
+Add forceRefresh=true query param to bypass cache.
+
+1. Start Redis using Docker
+   In the project root docker-compose.yml add:
+   redis:
+   image: redis:7
+   container_name: ride_redis
+   restart: always
+   ports:
+
+- "6379:6379"
+  Then start:
+  docker-compose up -d redis
+  Confirm with:
+  docker ps
+  docker exec -it ride_redis redis-cli ping
+  (should return PONG)
+
+2. Install Redis client
+   Inside backend:
+   npm install ioredis
+
+3. Create redisClient.js
+   backend/src/redisClient.js
+
+---
+
+import Redis from "ioredis";
+const redis = new Redis({
+host: process.env.REDIS_HOST || "127.0.0.1",
+port: process.env.REDIS_PORT || 6379,
+});
+export default redis;
+
+---
+
+4. Update trips.js
+   Modify GET /trips/list to:
+
+- Check cache first
+- If forceRefresh=true, skip cache
+- Cache results for 60 seconds
+
+---
+
+5. Test with Postman
+   First request:
+   GET /trips/list
+   Header: Authorization: Bearer <JWT_TOKEN>
+   -> Response: source: "db"
+   Second request (immediately):
+   GET /trips/list
+   -> Response: source: "cache"
+   To bypass cache:
+   GET /trips/list?forceRefresh=true
+
+Concepts Learned:
+
+- Redis as a caching layer
+- Cache key strategy (trips:userId)
+- Cache invalidation with forceRefresh
+- Performance improvement by reducing DB hits
