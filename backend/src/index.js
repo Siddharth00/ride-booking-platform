@@ -4,6 +4,9 @@ import cors from "cors";
 import authMiddleware from "./middleware/auth.js";
 import authRoutes from './routes/auth.js';
 import tripsRoutes from "./routes/trips.js";
+import { authRateLimiter } from "./rateLimiter.js";
+import morgan from "morgan";
+import { metrics } from "./metrics.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -12,12 +15,25 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(morgan("dev"));
+
+app.use((req, res, next) => {
+  metrics.totalRequests += 1;
+  next();
+});
+
+app.get("/metrics", (req, res) => {
+  res.json({
+    totalRequests: metrics.totalRequests,
+    uptime: process.uptime(),
+  });
+});
 
 app.get("/", (req, res) => {
   res.send("Ride Booking API is running!");
 });
 
-app.use('/auth', authRoutes);
+app.use('/auth', authRateLimiter, authRoutes);
 app.use('/trips', tripsRoutes);
 
 app.get('/protected', authMiddleware, (req, res) => {
