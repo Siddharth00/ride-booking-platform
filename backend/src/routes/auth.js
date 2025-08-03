@@ -6,7 +6,7 @@ import pool from '../db.js';
 const router = express.Router();
 
 // Signup route
-router.post('/signup', async (req,res) => {
+router.post('/signup', async (req,res,next) => {
   const { name, email, password, role } = req.body;
 
   if (!email || !password) {
@@ -26,13 +26,12 @@ router.post('/signup', async (req,res) => {
     const user = result.rows[0];
     res.json({ user });
   } catch (error) {
-    console.error('Error during signup:', error);
-    res.status(500).json({ error: 'Signup Failed' });
+    next(error); // Pass error to centralized errorHandler
   }
 });
 
 // Login route
-router.post('/login', async (req,res) => {
+router.post('/login', async (req,res,next) => {
   const { email, password } = req.body;
 
   try {
@@ -49,8 +48,7 @@ router.post('/login', async (req,res) => {
     res.json({ token })
     ;
   } catch (error) {
-    console.error('Error during signup:', error);
-    res.status(500).json({ error: `Signup Failed - ${error}` });
+    next(error); // Pass error to centralized errorHandler
   }
 });
 
