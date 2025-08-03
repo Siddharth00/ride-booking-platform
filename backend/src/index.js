@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from "cors";
 import authMiddleware from "./middleware/auth.js";
 import authRoutes from './routes/auth.js';
+import tripsRoutes from "./routes/trips.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -17,6 +18,7 @@ app.get("/", (req, res) => {
 });
 
 app.use('/auth', authRoutes);
+app.use('/trips', tripsRoutes);
 
 app.get('/protected', authMiddleware, (req, res) => {
   res.json({ message: "You have access!", user: req.user });
