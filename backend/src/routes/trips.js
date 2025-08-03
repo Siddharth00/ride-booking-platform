@@ -1,6 +1,8 @@
 import express from 'express';
 import pool from '../db.js';
 import authMiddleware from '../middleware/auth.js';
+import redis from "../redisClient.js";
+
 
 const router = express.Router();
 
@@ -32,13 +34,24 @@ router.post('/book', async (req, res) => {
 // List trips for logged-in user
 router.get("/list", async (req, res) => {
   const userId = req.user.id;
+  const forceRefresh = req.query.forceRefresh === "true";
+  const cacheKey = `trips:${userId}`;
 
   try {
+    if (!forceRefresh) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return res.json({ trips: JSON.parse(cached), source: "cache" });
+      }
+    }
+
     const result = await pool.query(
       "SELECT id, pickup, dropoff, status, created_at FROM trips WHERE user_id=$1 ORDER BY created_at DESC",
       [userId]
     );
-    res.json({ trips: result.rows });
+
+    await redis.setex(cacheKey, 60, JSON.stringify(result.rows)); // cache for 60 seconds
+    res.json({ trips: result.rows, source: "db" });
   } catch (err) {
     console.error("Error fetching trips", err);
     res.status(500).json({ error: "Failed to fetch trips" });
