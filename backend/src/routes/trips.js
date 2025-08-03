@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.post('/book', async (req, res) => {
+router.post('/book', async (req, res,next) => {
   const { pickup, dropoff } = req.body;
   const userId = req.user.id;
 
@@ -26,13 +26,12 @@ router.post('/book', async (req, res) => {
     const result = await pool.query(query, values);
     res.json({ trip: result.rows[0] });
   } catch (err) {
-    console.error("Error booking trip", err);
-    res.status(500).json({ error: "Failed to book trip" });
+    next(err); // Pass error to centralized errorHandler
   }
 });
 
 // List trips for logged-in user
-router.get("/list", async (req, res) => {
+router.get("/list", async (req, res,next) => {
   const userId = req.user.id;
   const forceRefresh = req.query.forceRefresh === "true";
   const cacheKey = `trips:${userId}`;
@@ -53,8 +52,7 @@ router.get("/list", async (req, res) => {
     await redis.setex(cacheKey, 60, JSON.stringify(result.rows)); // cache for 60 seconds
     res.json({ trips: result.rows, source: "db" });
   } catch (err) {
-    console.error("Error fetching trips", err);
-    res.status(500).json({ error: "Failed to fetch trips" });
+    next(err); // Pass error to centralized errorHandler
   }
 });
 

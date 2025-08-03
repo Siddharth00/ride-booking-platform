@@ -7,6 +7,8 @@ import tripsRoutes from "./routes/trips.js";
 import { authRateLimiter } from "./rateLimiter.js";
 import morgan from "morgan";
 import { metrics } from "./metrics.js";
+import errorHandler from "./middleware/errorHandler.js";
+import logger from "./logger.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -47,7 +49,10 @@ app.get('/health', (req,res) => {
   });
 });
 
+// Error handler must be last
+app.use(errorHandler);
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  logger.info(`Server is running on port ${PORT}`);
 })
